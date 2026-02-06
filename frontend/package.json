@@ -1,0 +1,38 @@
+{
+  "name": "chess-analytics-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "axios": "^1.7.11",
+    "chart.js": "^4.4.7",
+    "chess.js": "^1.0.0-beta.8",
+    "react": "^18.3.1",
+    "react-chartjs-2": "^5.1.0",
+    "react-chessboard": "^5.8.6",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.1",
+    "uuid": "^11.0.5"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "react-scripts": "5.0.1",
+    "tailwindcss": "^3.4.17"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

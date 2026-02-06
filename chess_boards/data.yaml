@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['chessboard']
+
+roboflow:
+  workspace: chess-piece-detection-0dwkm
+  project: board-detection-hq6gq
+  version: 6
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/chess-piece-detection-0dwkm/board-detection-hq6gq/dataset/6

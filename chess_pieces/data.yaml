@@ -1,0 +1,25 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 12
+names:
+  0: black_bishop
+  1: black_king
+  2: black_knight
+  3: black_pawn
+  4: black_queen
+  5: black_rook
+  6: white_bishop
+  7: white_king
+  8: white_knight
+  9: white_pawn
+  10: white_queen
+  11: white_rook
+
+roboflow:
+  workspace: chess-piece-detection-0dwkm
+  project: board-detection-hq6gq
+  version: 6
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/chess-piece-detection-0dwkm/board-detection-hq6gq/dataset/6

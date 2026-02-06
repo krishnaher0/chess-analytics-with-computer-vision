@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: changeme
+
+  node-backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      MONGO_URI: mongodb://root:changeme@mongodb:27017/chess_analytics?authSource=admin
+      JWT_SECRET: your_jwt_secret_here
+      ML_SERVICE_URL: http://python-ml-service:8000
+      STOCKFISH_PATH: /usr/bin/stockfish
+    depends_on:
+      - mongodb
+      - python-ml-service
+
+  python-ml-service:
+    build: ./python-ml-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./python-ml-service/models:/app/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+  react-frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - node-backend
+
+volumes:
+  mongo_data:

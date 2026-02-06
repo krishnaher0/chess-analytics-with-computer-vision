@@ -1,0 +1,66 @@
+# ── Node ──
+node_modules/
+
+# ── Python ──
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ── env files (contain secrets) ──
+.env
+
+# ── trained model weights (large binaries — store via DVC or download script) ──
+python-ml-service/models/*.pt
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── build outputs ──
+frontend/build/
+backend/dist/
+
+# ── YOLO training runs ──
+python-ml-service/runs/
+runs/
+
+# ── IDE and editor files ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Logs ──
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── package-lock files (optional if using legacy-peer-deps) ──
+# package-lock.json
+
+# ── Claude Code workspace ──
+.claude/
+.notebook/
+
+# ── Dataset images (large files) ──
+chess_boards/train/images/
+chess_boards/valid/images/
+chess_boards/test/images/
+chess_pieces/train/images/
+chess_pieces/valid/images/
+chess_pieces/test/images/
+
+# ── Keep labels but not images ──
+!chess_boards/**/labels/
+!chess_pieces/**/labels/
+
+# ── Jupyter Notebook checkpoints ──
+.ipynb_checkpoints/
+
+# ── Coverage reports ──
+coverage/
+.nyc_output/
