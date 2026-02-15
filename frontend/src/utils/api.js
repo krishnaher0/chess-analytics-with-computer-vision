@@ -7,6 +7,18 @@ const api = axios.create({
   timeout: 30000,
 });
 
+/* ── global request interceptor: attach token ──────────── */
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (err) => Promise.reject(err)
+);
+
 /* ── global response interceptor: surface error messages ── */
 api.interceptors.response.use(
   (res) => res,

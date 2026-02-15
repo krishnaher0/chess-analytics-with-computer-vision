@@ -3,33 +3,33 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_LINKS = [
-  { to: '/',            label: 'Home' },
-  { to: '/game',        label: 'Play' },
+  { to: '/', label: 'Home' },
+  { to: '/game', label: 'Play' },
   {
     label: 'Detect',
     submenu: [
       { to: '/detect/image', label: 'Upload Image' },
       { to: '/detect/video', label: 'Upload Video' },
-      { to: '/detect/live',  label: 'Live Camera' }
+      { to: '/detect/live', label: 'Live Camera' }
     ]
   },
   {
     label: 'Analysis',
     submenu: [
-      { to: '/analysis/upload',  label: 'Analyze PGN' },
+      { to: '/analysis/upload', label: 'Analyze PGN' },
       { to: '/analysis/history', label: 'View History' }
     ]
   },
   { to: '/tournaments', label: 'Tournaments' },
-  { to: '/leaderboards',label: 'Leaderboards' },
-  { to: '/profile',     label: 'Profile' },
+  { to: '/leaderboards', label: 'Leaderboards' },
+  { to: '/profile', label: 'Profile' },
 ];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [detectMenuOpen, setDetectMenuOpen] = useState(false);
+  const [openSubmenuIndex, setOpenSubmenuIndex] = useState(null);
 
   return (
     <nav className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
@@ -40,20 +40,19 @@ export default function Navbar() {
         </Link>
 
         {/* desktop links */}
-        <div className="hidden md:flex gap-1 items-center">
+        <div className="hidden md:flex gap-1 items-center h-full">
           {user && NAV_LINKS.map((item, idx) => {
             if (item.submenu) {
-              // Dropdown menu for Detect
               return (
                 <div
                   key={idx}
-                  className="relative"
-                  onMouseEnter={() => setDetectMenuOpen(true)}
-                  onMouseLeave={() => setDetectMenuOpen(false)}
+                  className="relative h-full flex items-center"
+                  onMouseEnter={() => setOpenSubmenuIndex(idx)}
+                  onMouseLeave={() => setOpenSubmenuIndex(null)}
                 >
                   <button
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1
-                      ${location.pathname.startsWith('/detect')
+                      ${location.pathname.startsWith(item.label.toLowerCase() === 'detect' ? '/detect' : '/analysis')
                         ? 'bg-gray-800 text-primary-400'
                         : 'text-gray-300 hover:text-white hover:bg-gray-800'}`}
                   >
@@ -62,25 +61,28 @@ export default function Navbar() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
-                  {detectMenuOpen && (
-                    <div className="absolute top-full left-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]">
-                      {item.submenu.map((subitem) => (
-                        <Link
-                          key={subitem.to}
-                          to={subitem.to}
-                          className={`block px-4 py-2 text-sm transition-colors
-                            ${location.pathname === subitem.to
-                              ? 'bg-gray-700 text-primary-400'
-                              : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
-                        >
-                          {subitem.label}
-                        </Link>
-                      ))}
+                  {openSubmenuIndex === idx && (
+                    <div className="absolute top-full left-0 bg-transparent pt-0 z-50">
+                      <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]">
+                        {item.submenu.map((subitem) => (
+                          <Link
+                            key={subitem.to}
+                            to={subitem.to}
+                            className={`block px-4 py-2 text-sm transition-colors
+                              ${location.pathname === subitem.to
+                                ? 'bg-gray-700 text-primary-400'
+                                : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
+                          >
+                            {subitem.label}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
               );
-            } else {
+            }
+            else {
               // Regular link
               return (
                 <Link
@@ -107,7 +109,7 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link to="/login"    className="text-gray-300 hover:text-white text-sm">Login</Link>
+              <Link to="/login" className="text-gray-300 hover:text-white text-sm">Login</Link>
               <Link to="/register" className="btn-primary text-sm px-3 py-1.5">Register</Link>
             </>
           )}

@@ -1,33 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useGame } from '../context/GameContext';
 import { TIME_CONTROLS, BOT_DIFFICULTIES } from '../utils/chessHelpers';
+import api from '../utils/api';
 
 export default function GameSetupPage() {
-  const [params]        = useSearchParams();
-  const nav             = useNavigate();
-  const { startGame }   = useGame();
-  const isFriend        = params.get('mode') === 'friend';
+  const { token } = useAuth();
+  const [params] = useSearchParams();
+  const nav = useNavigate();
+  const { startGame, sendChallenge, outgoingChallenge } = useGame();
+  const isFriend = params.get('mode') === 'friend';
 
-  const [timeControl, setTimeControl]       = useState(TIME_CONTROLS[2]); // Blitz 3+0 default
-  const [botDifficulty, setBotDifficulty]   = useState(BOT_DIFFICULTIES[1]);
-  const [friendUsername, setFriendUsername]  = useState('');
-  const [error, setError]                   = useState('');
-  const [loading, setLoading]               = useState(false);
+  const [timeControl, setTimeControl] = useState(TIME_CONTROLS[2]); // Blitz 3+0 default
+  const [botDifficulty, setBotDifficulty] = useState(BOT_DIFFICULTIES[1]);
+  const [friendUsername, setFriendUsername] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleStart = async () => {
+  // Debounced user search
+  useEffect(() => {
+    if (!isFriend || friendUsername.length < 1) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      setError('');
+      try {
+        const res = await api.get(`/profile/search?username=${friendUsername}`);
+        setSearchResults(res.data);
+      } catch (err) {
+        console.error('Search error:', err);
+        setError(`Search failed: ${err.message}`);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [friendUsername, isFriend]);
+
+  const handleStartBotGame = async () => {
     setError('');
     setLoading(true);
     try {
       const payload = {
-        isVsBot: !isFriend,
-        botDifficulty: isFriend ? null : botDifficulty.value,
-        opponentId: null, // friend search by username will be resolved server-side in a real impl
+        isVsBot: true,
+        botDifficulty: botDifficulty.value,
         timeControl: { totalSeconds: timeControl.totalSeconds, incrementSeconds: timeControl.incrementSeconds },
       };
-      if (isFriend && friendUsername.trim()) {
-        payload.friendUsername = friendUsername.trim();
-      }
       const game = await startGame(payload);
       nav(`/game/${game._id}`);
     } catch (err) {
@@ -35,6 +60,10 @@ export default function GameSetupPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleChallenge = (user) => {
+    sendChallenge(user._id, timeControl);
   };
 
   return (
@@ -83,24 +112,64 @@ export default function GameSetupPage() {
         </div>
       )}
 
-      {/* friend username input — only shown when playing vs friend */}
+      {/* friend search — only shown when playing vs friend */}
       {isFriend && (
         <div className="card">
-          <label className="text-sm text-gray-400 mb-1 block">Friend's Username</label>
+          <label className="text-sm text-gray-400 mb-1 block">Find Friend</label>
           <input
             type="text"
+            className="w-full bg-gray-800 border-gray-700 text-white rounded-lg px-4 py-2 border focus:border-primary-500 outline-none transition-colors"
             value={friendUsername}
             onChange={e => setFriendUsername(e.target.value)}
-            placeholder="e.g. chess_knight42"
+            placeholder="Search by username..."
           />
+
+          <div className="mt-4 space-y-2">
+            {searching ? (
+              <p className="text-xs text-gray-500 animate-pulse">Searching...</p>
+            ) : searchResults.length > 0 ? (
+              searchResults.map(user => (
+                <div key={user._id} className="flex items-center justify-between p-3 bg-gray-800 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300">
+                      {user.username[0].toUpperCase()}
+                    </div>
+                    <span className="font-medium text-gray-200">{user.username}</span>
+                  </div>
+                  <button
+                    onClick={() => handleChallenge(user)}
+                    disabled={outgoingChallenge?.toId === user._id}
+                    className={`text-xs px-3 py-1.5 rounded-md font-semibold transition-all
+                      ${outgoingChallenge?.toId === user._id
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        : 'bg-primary-600 hover:bg-primary-500 text-white shadow-sm'}`}
+                  >
+                    {outgoingChallenge?.toId === user._id ? 'Challenged' : 'Challenge'}
+                  </button>
+                </div>
+              ))
+            ) : friendUsername.length >= 1 ? (
+              <p className="text-xs text-gray-500">No users found.</p>
+            ) : (
+              <p className="text-xs text-gray-500 italic">Type at least 1 character to search.</p>
+            )}
+          </div>
         </div>
       )}
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
 
-      <button onClick={handleStart} disabled={loading} className="btn-primary w-full">
-        {loading ? 'Starting…' : 'Start Game'}
-      </button>
+      {!isFriend && (
+        <button onClick={handleStartBotGame} disabled={loading} className="btn-primary w-full">
+          {loading ? 'Starting…' : 'Start Game'}
+        </button>
+      )}
+
+      {isFriend && outgoingChallenge && (
+        <div className="text-center p-3 bg-primary-900/30 border border-primary-800/50 rounded-lg animate-pulse">
+          <p className="text-sm text-primary-200">Waiting for friend to accept...</p>
+        </div>
+      )}
     </div>
   );
 }

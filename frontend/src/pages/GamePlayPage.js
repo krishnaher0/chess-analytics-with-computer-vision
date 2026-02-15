@@ -8,17 +8,17 @@ import { formatTime, formatEval, pieceToSymbol } from '../utils/chessHelpers';
 import api from '../utils/api';
 
 export default function GamePlayPage() {
-  const { gameId }          = useParams();
-  const nav                 = useNavigate();
-  const { token }           = useAuth();
+  const { gameId } = useParams();
+  const nav = useNavigate();
+  const { token } = useAuth();
   const { submitMove, endGame } = useGame();
 
-  const [game, setGame]             = useState(null);
-  const [chess, setChess]           = useState(() => new Chess());
+  const [game, setGame] = useState(null);
+  const [chess, setChess] = useState(() => new Chess());
   const [currentEval, setCurrentEval] = useState(null);
-  const [gameOver, setGameOver]     = useState(false);
-  const [loading, setLoading]       = useState(true);
-  const clockRef                    = useRef(null);
+  const [gameOver, setGameOver] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const clockRef = useRef(null);
 
   /* ── fetch game on mount ──── */
   useEffect(() => {
@@ -94,7 +94,7 @@ export default function GamePlayPage() {
   /* ── resign button ──── */
   const handleResign = async () => {
     if (gameOver) return;
-    const loser  = game.activeColor;
+    const loser = game.activeColor;
     const winner = loser === 'white' ? 'black' : 'white';
     await endGame(winner);
     setGameOver(true);
@@ -108,34 +108,41 @@ export default function GamePlayPage() {
   };
 
   if (loading) return <div className="text-center text-gray-500 mt-20">Loading game…</div>;
-  if (!game)   return <div className="text-center text-red-400 mt-20">Game not found.</div>;
+  if (!game) return <div className="text-center text-red-400 mt-20">Game not found.</div>;
 
   /* eval bar color */
-  const evalVal   = typeof currentEval === 'number' ? currentEval : 0;
-  const evalPct   = Math.min(100, Math.max(0, 50 + (evalVal / 10))); // rough mapping
+  const evalVal = typeof currentEval === 'number' ? currentEval : 0;
+  const evalPct = Math.min(100, Math.max(0, 50 + (evalVal / 10))); // rough mapping
   const evalColor = evalVal >= 0 ? 'bg-white' : 'bg-gray-700';
+
+  /* board orientation: my color is at the bottom */
+  const myColor = (user && game.blackPlayerId?._id === user.userId) ? 'black' : 'white';
+  const opponentColor = myColor === 'white' ? 'black' : 'white';
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
       {/* board + clocks */}
       <div className="flex flex-col items-center gap-3">
-        {/* black clock (top) */}
+        {/* opponent clock (top) */}
         <div className={`px-4 py-1.5 rounded-lg text-sm font-mono font-bold
-          ${game.activeColor === 'black' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400'}`}>
-          ♚ Black &nbsp; {formatTime(game.blackTimeLeft)}
+          ${game.activeColor === opponentColor ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400'}`}>
+          {opponentColor === 'black' ? '♚ Black' : '♔ White'} &nbsp;
+          {formatTime(opponentColor === 'black' ? game.blackTimeLeft : game.whiteTimeLeft)}
         </div>
 
         {/* chessboard */}
         <Chessboard
           position={chess.fen()}
           onPieceDrop={onDrop}
+          boardOrientation={myColor}
           boardWidth={Math.min(480, window.innerWidth - 40)}
         />
 
-        {/* white clock (bottom) */}
+        {/* player clock (bottom) */}
         <div className={`px-4 py-1.5 rounded-lg text-sm font-mono font-bold
-          ${game.activeColor === 'white' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400'}`}>
-          ♔ White &nbsp; {formatTime(game.whiteTimeLeft)}
+          ${game.activeColor === myColor ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400'}`}>
+          {myColor === 'white' ? '♔ White' : '♚ Black'} &nbsp;
+          {formatTime(myColor === 'white' ? game.whiteTimeLeft : game.blackTimeLeft)}
         </div>
       </div>
 
@@ -145,7 +152,7 @@ export default function GamePlayPage() {
         <div className="card">
           <div className="flex justify-between text-xs text-gray-400 mb-1">
             <span>Eval</span>
-            <span className="font-mono">{typeof currentEval === 'number' ? (currentEval/100).toFixed(2) : '0.00'}</span>
+            <span className="font-mono">{typeof currentEval === 'number' ? (currentEval / 100).toFixed(2) : '0.00'}</span>
           </div>
           <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
             <div className={`h-full rounded-full transition-all duration-500 ${evalColor}`} style={{ width: `${evalPct}%` }} />
@@ -156,7 +163,7 @@ export default function GamePlayPage() {
         {!gameOver && (
           <div className="card flex gap-2">
             <button onClick={handleResign} className="btn-danger flex-1 text-sm px-2 py-1.5">Resign</button>
-            <button onClick={handleDraw}   className="btn-secondary flex-1 text-sm px-2 py-1.5">Draw</button>
+            <button onClick={handleDraw} className="btn-secondary flex-1 text-sm px-2 py-1.5">Draw</button>
           </div>
         )}
 
@@ -176,7 +183,7 @@ export default function GamePlayPage() {
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
             {game.moves && game.moves.map((m, i) => (
               <span key={i} className={`font-mono ${m.movedBy === 'white' ? 'text-gray-200' : 'text-gray-500'}`}>
-                {m.movedBy === 'white' && <span className="text-gray-600 mr-1">{Math.ceil((i+1)/2)}.</span>}
+                {m.movedBy === 'white' && <span className="text-gray-600 mr-1">{Math.ceil((i + 1) / 2)}.</span>}
                 {m.san}
               </span>
             ))}

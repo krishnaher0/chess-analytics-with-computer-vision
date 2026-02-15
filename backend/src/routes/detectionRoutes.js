@@ -27,7 +27,7 @@ router.post('/detect', verifyToken, upload.single('image'), async (req, res) => 
     // --- path A: image file uploaded as multipart ----------------
     if (req.file) {
       const form = new FormData();
-      form.append('image', req.file.buffer, {
+      form.append('file', req.file.buffer, {
         filename: req.file.originalname,
         contentType: req.file.mimetype
       });

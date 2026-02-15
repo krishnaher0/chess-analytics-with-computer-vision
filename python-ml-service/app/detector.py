@@ -91,7 +91,7 @@ class ChessDetector:
                 "confidence": float
             }
         """
-        results = self.piece_model.predict(image, conf=0.4)
+        results = self.piece_model.predict(image, conf=0.5)
 
         detections: list[dict] = []
         if len(results) == 0:

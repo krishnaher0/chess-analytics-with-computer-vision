@@ -22,10 +22,10 @@ load_dotenv(dotenv_path=os.path.join(_SERVICE_ROOT, ".env"))
 # ---------------------------------------------------------------------------
 BOARD_MODEL_PATH: str = os.getenv(
     "BOARD_MODEL_PATH",
-    os.path.join(_SERVICE_ROOT, "models", "board_detector.pt"),
+    os.path.join(_SERVICE_ROOT, "models", "boards.pt"),
 )
 
 PIECE_MODEL_PATH: str = os.getenv(
     "PIECE_MODEL_PATH",
-    os.path.join(_SERVICE_ROOT, "models", "piece_detector.pt"),
+    os.path.join(_SERVICE_ROOT, "models", "pieces.pt"),
 )

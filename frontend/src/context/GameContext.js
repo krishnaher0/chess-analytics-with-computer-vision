@@ -8,7 +8,9 @@ export const GameProvider = ({ children }) => {
   const { token } = useAuth();
   const [currentGame, setCurrentGame] = useState(null);
   const [moveHistory, setMoveHistory] = useState([]);
-  const [gameOver, setGameOver]       = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const [incomingChallenge, setIncomingChallenge] = useState(null);
+  const [outgoingChallenge, setOutgoingChallenge] = useState(null);
   const wsRef = useRef(null);
 
   const headers = useCallback(() => ({ Authorization: `Bearer ${token}` }), [token]);
@@ -20,6 +22,28 @@ export const GameProvider = ({ children }) => {
     setMoveHistory([]);
     setGameOver(false);
     return res.data;
+  };
+
+  /* ── challenge functions ─────────────────────────────── */
+  const sendChallenge = (toId, timeControl) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'challenge_send', toId, timeControl }));
+      setOutgoingChallenge({ toId, timeControl });
+    }
+  };
+
+  const acceptChallenge = (fromId, timeControl) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'challenge_accept', fromId, timeControl }));
+      setIncomingChallenge(null);
+    }
+  };
+
+  const declineChallenge = (fromId) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'challenge_decline', fromId }));
+      setIncomingChallenge(null);
+    }
   };
 
   /* ── submit a move ─────────────────────────────────── */
@@ -70,15 +94,58 @@ export const GameProvider = ({ children }) => {
     const WS_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api')
       .replace(/^http/, 'ws').replace(/\/api$/, '');
     const ws = new WebSocket(WS_URL);
+
     ws.onopen = () => ws.send(JSON.stringify({ type: 'authenticate', token }));
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      switch (data.type) {
+        case 'challenge_received':
+          setIncomingChallenge(data);
+          break;
+        case 'challenge_accepted':
+          // Game started! Both players navigate to the game page.
+          // Note: CurrentGame state will be fetched by the GamePlayPage via its own effect or we can set it here if we fetch it.
+          // For simplicity, we just trigger a navigation by providing the ID.
+          setOutgoingChallenge(null);
+          setIncomingChallenge(null);
+          window.location.href = `/game/${data.gameId}`;
+          break;
+        case 'challenge_declined':
+          setOutgoingChallenge(null);
+          alert('Challenge declined.');
+          break;
+        case 'challenge_error':
+          setOutgoingChallenge(null);
+          alert(data.message);
+          break;
+        default:
+          break;
+      }
+    };
+
     wsRef.current = ws;
-    return () => ws.close();
+
+    return () => {
+      // Clear handlers before closing to prevent any "after-death" callback execution
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onerror = null;
+      ws.onclose = null;
+      if (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+      wsRef.current = null;
+    };
   }, [token]);
 
   const value = {
     currentGame, moveHistory, gameOver,
+    incomingChallenge, outgoingChallenge,
+    setIncomingChallenge, setOutgoingChallenge,
     startGame, submitMove, endGame, fetchAnalysis,
     detectBoard, detectFromUrl,
+    sendChallenge, acceptChallenge, declineChallenge
   };
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };

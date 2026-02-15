@@ -1,10 +1,10 @@
 const express = require('express');
-const router  = express.Router();
+const router = express.Router();
 const { Chess } = require('chess.js');
 
-const Game              = require('../models/Game');
-const User              = require('../models/User');
-const { verifyToken }   = require('../middleware/auth');
+const Game = require('../models/Game');
+const User = require('../models/User');
+const { verifyToken } = require('../middleware/auth');
 const { stockfish, initStockfish } = require('../utils/stockfish');
 const { generatePGN, convertUCItoSAN } = require('../utils/pgnGenerator');
 const { analyzeGame, generateRecommendations } = require('../utils/feedbackEngine');
@@ -19,7 +19,7 @@ const { analyzeGame, generateRecommendations } = require('../utils/feedbackEngin
  */
 function depthForGame(game) {
   const secs = game.timeControl ? game.timeControl.totalSeconds : 300;
-  if (secs <= 60)  return 8;
+  if (secs <= 60) return 8;
   if (secs <= 300) return 10;
   return 15;
 }
@@ -29,7 +29,7 @@ function depthForGame(game) {
  * detected game-over.
  */
 function resolveResult(chess) {
-  if (chess.isDraw())      return 'draw';
+  if (chess.isDraw()) return 'draw';
   // isCheckmate() → the side whose turn it is has been checkmated
   if (chess.isCheckmate()) return chess.turn() === 'w' ? 'black' : 'white';
   return 'draw';   // stalemate / insufficient material / etc.
@@ -59,7 +59,7 @@ async function recordMove(game, san, movedBy, depth, timeSpentMs = 0) {
   // Get Stockfish evaluation of the NEW position
   await stockfish.setPosition(fenAfter);
   const evalResult = await stockfish.getEvaluation(depth);
-  const evalCp     = evalResult.type === 'cp' ? evalResult.value : (evalResult.value > 0 ? 99999 : -99999);
+  const evalCp = evalResult.type === 'cp' ? evalResult.value : (evalResult.value > 0 ? 99999 : -99999);
 
   // Get Stockfish best-move suggestion for the new position
   await stockfish.setPosition(fenAfter);
@@ -78,7 +78,7 @@ async function recordMove(game, san, movedBy, depth, timeSpentMs = 0) {
     movedBy
   });
 
-  game.currentFen  = fenAfter;
+  game.currentFen = fenAfter;
   game.activeColor = movedBy === 'white' ? 'black' : 'white';
 
   // Deduct time (rough: we do not track sub-second precision here)
@@ -166,15 +166,15 @@ router.post('/start', verifyToken, async (req, res) => {
     const game = new Game({
       whitePlayerId: req.user.userId,
       blackPlayerId: isVsBot ? null : (opponentId || null),
-      isVsBot:       !!isVsBot,
+      isVsBot: !!isVsBot,
       botDifficulty: isVsBot ? botDifficulty : null,
       timeControl,
-      currentFen:    'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-      startedAt:     new Date(),
+      currentFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      startedAt: new Date(),
       whiteTimeLeft: timeControl.totalSeconds * 1000,
       blackTimeLeft: timeControl.totalSeconds * 1000,
-      activeColor:   'white',
-      result:        'ongoing'
+      activeColor: 'white',
+      result: 'ongoing'
     });
 
     if (isVsBot && botDifficulty) {
@@ -212,7 +212,7 @@ router.post('/move', verifyToken, async (req, res) => {
     // Verify it is this player's turn
     const playerColor =
       game.whitePlayerId && game.whitePlayerId.toString() === req.user.userId ? 'white' :
-      game.blackPlayerId && game.blackPlayerId.toString() === req.user.userId ? 'black' : null;
+        game.blackPlayerId && game.blackPlayerId.toString() === req.user.userId ? 'black' : null;
 
     if (playerColor !== game.activeColor) {
       return res.status(400).json({ message: 'It is not your turn.' });
@@ -232,9 +232,9 @@ router.post('/move', verifyToken, async (req, res) => {
 
     // Check game over after human move
     if (chessAfterHuman.isGameOver()) {
-      game.result  = resolveResult(chessAfterHuman);
+      game.result = resolveResult(chessAfterHuman);
       game.endedAt = new Date();
-      game.pgn     = generatePGN(game);
+      game.pgn = generatePGN(game);
     }
 
     // ── Bot response (if applicable) ─────────────────────────
@@ -243,15 +243,15 @@ router.post('/move', verifyToken, async (req, res) => {
       const botColor = playerColor === 'white' ? 'black' : 'white';
 
       await stockfish.setPosition(game.currentFen);
-      const uciMove  = await stockfish.getBestMove(depth);
-      const botSan   = convertUCItoSAN(uciMove, game.currentFen);
+      const uciMove = await stockfish.getBestMove(depth);
+      const botSan = convertUCItoSAN(uciMove, game.currentFen);
 
       const chessAfterBot = await recordMove(game, botSan, botColor, depth, 0);
 
       if (chessAfterBot.isGameOver()) {
-        game.result  = resolveResult(chessAfterBot);
+        game.result = resolveResult(chessAfterBot);
         game.endedAt = new Date();
-        game.pgn     = generatePGN(game);
+        game.pgn = generatePGN(game);
       }
     }
 
@@ -278,9 +278,9 @@ router.get('/detect-move', verifyToken, async (req, res) => {
     }
 
     return res.status(200).json({
-      currentFen:  game.currentFen,
+      currentFen: game.currentFen,
       activeColor: game.activeColor,
-      gameStatus:  game.result
+      gameStatus: game.result
     });
   } catch (error) {
     console.error('[Game] /detect-move error:', error);
@@ -306,7 +306,7 @@ router.post('/end', verifyToken, async (req, res) => {
       return res.status(404).json({ message: 'Game not found.' });
     }
 
-    game.result  = result;
+    game.result = result;
     game.endedAt = new Date();
 
     // Generate PGN
@@ -335,6 +335,29 @@ router.post('/end', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('[Game] /end error:', error);
     return res.status(500).json({ message: 'Failed to end game.', error: error.message });
+  }
+});
+
+// ── GET /ongoing ──────────────────────────────────────────────
+// Returns games the authenticated user is currently playing.
+router.get('/ongoing', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const games = await Game.find({
+      $or: [
+        { whitePlayerId: userId },
+        { blackPlayerId: userId }
+      ],
+      result: 'ongoing'
+    })
+      .populate('whitePlayerId', 'username')
+      .populate('blackPlayerId', 'username')
+      .sort({ startedAt: -1 });
+
+    return res.status(200).json(games);
+  } catch (error) {
+    console.error('[Game] /ongoing error:', error);
+    return res.status(500).json({ message: 'Internal server error.', error: error.message });
   }
 });
 
@@ -393,7 +416,7 @@ router.post('/analysis/:gameId', verifyToken, async (req, res) => {
       return res.status(404).json({ message: 'Game not found.' });
     }
 
-    const analysis        = analyzeGame(game);
+    const analysis = analyzeGame(game);
     const recommendations = generateRecommendations(analysis);
 
     return res.status(200).json({ analysis, recommendations });

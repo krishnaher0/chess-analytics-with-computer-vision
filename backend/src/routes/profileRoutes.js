@@ -1,9 +1,9 @@
 const express = require('express');
-const router  = express.Router();
+const router = express.Router();
 
-const User              = require('../models/User');
-const Game              = require('../models/Game');
-const { verifyToken }   = require('../middleware/auth');
+const User = require('../models/User');
+const Game = require('../models/Game');
+const { verifyToken } = require('../middleware/auth');
 const { analyzeGame, generateRecommendations } = require('../utils/feedbackEngine');
 
 // ── GET /feedback/:userId ─────────────────────────────────────
@@ -30,10 +30,10 @@ router.get('/feedback/:userId', verifyToken, async (req, res) => {
 
     // Analyse each game and aggregate
     const phaseAccumulators = {
-      opening:    { accuracySum: 0, count: 0 },
+      opening: { accuracySum: 0, count: 0 },
       middlegame: { accuracySum: 0, count: 0 },
-      endgame:    { accuracySum: 0, count: 0 },
-      overall:    { accuracySum: 0, totalBlunders: 0, totalMistakes: 0, count: 0 }
+      endgame: { accuracySum: 0, count: 0 },
+      overall: { accuracySum: 0, totalBlunders: 0, totalMistakes: 0, count: 0 }
     };
 
     for (const game of games) {
@@ -52,9 +52,9 @@ router.get('/feedback/:userId', verifyToken, async (req, res) => {
         phaseAccumulators.endgame.count++;
       }
       if (analysis.overall) {
-        phaseAccumulators.overall.accuracySum    += analysis.overall.accuracy;
-        phaseAccumulators.overall.totalBlunders  += analysis.overall.totalBlunders;
-        phaseAccumulators.overall.totalMistakes  += analysis.overall.totalMistakes;
+        phaseAccumulators.overall.accuracySum += analysis.overall.accuracy;
+        phaseAccumulators.overall.totalBlunders += analysis.overall.totalBlunders;
+        phaseAccumulators.overall.totalMistakes += analysis.overall.totalMistakes;
         phaseAccumulators.overall.count++;
       }
     }
@@ -73,7 +73,7 @@ router.get('/feedback/:userId', verifyToken, async (req, res) => {
         accuracy: avg(phaseAccumulators.endgame.accuracySum, phaseAccumulators.endgame.count)
       },
       overall: {
-        accuracy:      avg(phaseAccumulators.overall.accuracySum, phaseAccumulators.overall.count),
+        accuracy: avg(phaseAccumulators.overall.accuracySum, phaseAccumulators.overall.count),
         totalBlunders: phaseAccumulators.overall.totalBlunders,
         totalMistakes: phaseAccumulators.overall.totalMistakes
       }
@@ -86,10 +86,10 @@ router.get('/feedback/:userId', verifyToken, async (req, res) => {
 
     return res.status(200).json({
       userId,
-      username:       user.username,
+      username: user.username,
       averageStats,
       recommendations,
-      gamesAnalyzed:  games.length
+      gamesAnalyzed: games.length
     });
   } catch (error) {
     console.error('[Profile] /feedback error:', error);
@@ -107,7 +107,7 @@ router.get('/stats/:userId', verifyToken, async (req, res) => {
     }
 
     return res.status(200).json({
-      username:     user.username,
+      username: user.username,
       profileStats: user.profileStats
     });
   } catch (error) {
@@ -134,6 +134,39 @@ router.get('/games/:userId', verifyToken, async (req, res) => {
     return res.status(200).json(games);
   } catch (error) {
     console.error('[Profile] /games error:', error);
+    return res.status(500).json({ message: 'Internal server error.', error: error.message });
+  }
+});
+
+// ── GET /search ───────────────────────────────────────────────
+
+router.get('/search', verifyToken, async (req, res) => {
+  try {
+    const { username } = req.query;
+    console.log(`[Profile] GET /search?username=${username} | Requested by userId: ${req.user.userId}`);
+
+    if (!username || username.trim().length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // First find all matching users without the user filter to see what's happening
+    const allMatches = await User.find({
+      username: { $regex: username.trim(), $options: 'i' }
+    }).select('username _id');
+
+    console.log(`[Profile] Raw search matches (Count: ${allMatches.length}):`);
+    allMatches.forEach(u => console.log(`  - ${u.username} (${u._id})`));
+    console.log(`[Profile] Requesting user ID for exclusion: ${req.user.userId}`);
+
+    // Filter out the current user
+    const users = allMatches
+      .filter(u => u._id.toString() !== req.user.userId.toString())
+      .slice(0, 10);
+
+    console.log(`[Profile] Returning ${users.length} results.`);
+    return res.status(200).json(users);
+  } catch (error) {
+    console.error('[Profile] /search error:', error);
     return res.status(500).json({ message: 'Internal server error.', error: error.message });
   }
 });

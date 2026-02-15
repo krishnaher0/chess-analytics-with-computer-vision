@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Chart as ChartJS, RadarChart, PolarGrid, PolarCategoryAxis, PolarValueAxis, Radar, Tooltip, Legend, ResponsiveContainer } from 'chart.js';
-import { Chart } from 'react-chartjs-2';
+import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
+import { Radar } from 'react-chartjs-2';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
-ChartJS.register(RadarChart, PolarGrid, PolarCategoryAxis, PolarValueAxis, Radar, Tooltip, Legend);
+ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 export default function ProfilePage() {
   const { user, token } = useAuth();
@@ -98,15 +98,25 @@ export default function ProfilePage() {
         <div className="card flex flex-col items-center">
           <h2 className="font-semibold text-gray-300 mb-3">Phase Accuracy</h2>
           <div className="w-full" style={{ height: 260 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData.labels.map((l, i) => ({ subject: l, value: radarData.datasets[0].data[i] }))}>
-                <PolarGrid stroke="#374151" />
-                <PolarCategoryAxis dataKey="subject" tick={{ fill: '#d1d5db', fontSize: 12 }} />
-                <PolarValueAxis domain={[0, 100]} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                <Radar name="Accuracy" dataKey="value" stroke="#22c55e" fill="#22c55e" fillOpacity={0.2} />
-                <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: 8, color: '#f3f4f6' }} />
-              </RadarChart>
-            </ResponsiveContainer>
+            <Radar data={radarData} options={{
+              scales: {
+                r: {
+                  beginAtZero: true,
+                  max: 100,
+                  ticks: { color: '#9ca3af' },
+                  grid: { color: '#374151' },
+                  pointLabels: { color: '#d1d5db' }
+                }
+              },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: '#1f2937',
+                  borderColor: '#374151',
+                  borderWidth: 1
+                }
+              }
+            }} />
           </div>
         </div>
 
